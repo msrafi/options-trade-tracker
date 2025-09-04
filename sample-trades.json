@@ -1,0 +1,14 @@
+
+[
+  {
+    "id": "tsla-example-1",
+    "symbol": "TSLA",
+    "entryDate": "2025-09-03",
+    "purchasePrice": 250,
+    "qty": 1,
+    "type": "option",
+    "strategy": "Single",
+    "option": { "side": "CALL", "strike": 0, "expiration": "2025-09-05" },
+    "exit": { "date": "2025-09-04", "price": 500, "fees": 0 }
+  }
+]
