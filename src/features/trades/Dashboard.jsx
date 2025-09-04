@@ -3,10 +3,9 @@ import React, { useMemo, useState } from 'react'
 import { AppCard, Stat } from '../../design-system'
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell, ComposedChart, Line } from 'recharts'
 import { fmt, fmtPct, monthKey } from './utils'
-import { useStorage } from '../../hooks/useStorage'
+import { useTradeStorage } from '../../hooks/useTradeStorage'
 
-export default function Dashboard({ trades }){
-  const { settings = { optionMultiplier: 100 } } = useStorage() || {}
+export default function Dashboard({ trades, settings }){
   const [period, setPeriod] = useState('daily')
 
   const aggregates = useMemo(() => {

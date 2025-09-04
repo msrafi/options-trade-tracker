@@ -2,10 +2,9 @@
 import React from 'react'
 import { AppButton, Badge } from '../../design-system'
 import { fmt } from './utils'
-import { useStorage } from '../../hooks/useStorage'
+import { useTradeStorage } from '../../hooks/useTradeStorage'
 
-export default function TradesTable({ trades, onExitClick, onDelete, onEdit }){
-  const { settings = { optionMultiplier: 100 } } = useStorage() || {}
+export default function TradesTable({ trades, settings, onExitClick, onDelete, onEdit }){
   return (
     <div className="overflow-auto">
       <table className="min-w-full text-sm">

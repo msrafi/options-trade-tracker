@@ -1,8 +1,13 @@
 
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import TradeTrackerApp from './App.jsx'
+import App from './App.jsx'
 import './index.css'
 
+// Strict mode helps catch common bugs
 const root = createRoot(document.getElementById('root'))
-root.render(<TradeTrackerApp />)
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+)
