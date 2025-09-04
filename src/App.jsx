@@ -126,8 +126,21 @@ export default function App() {
           onImport={handleImport} 
           onExport={handleExport} 
         />
-        <Divider />
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 mt-6">
+        <Divider className="my-6" />
+        
+        <AppCard className="mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold">New Trade</h3>
+          </div>
+          <TradeForm 
+            onSubmit={trade => {
+              saveTrade(trade)
+            }}
+            onCancel={null}
+          />
+        </AppCard>
+
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
           <AppCard className="xl:col-span-3">
             <h3 className="text-lg font-semibold mb-4">Filters</h3>
             <AppSelect 
@@ -155,9 +168,6 @@ export default function App() {
             <AppCard>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold">Manage Trades</h3>
-                <AppButton variant="primary" onClick={() => setEditing({})}>
-                  Add Trade
-                </AppButton>
               </div>
               <TradesTable 
                 trades={filtered} 

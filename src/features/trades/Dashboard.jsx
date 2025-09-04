@@ -5,13 +5,60 @@ import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContaine
 import { fmt, fmtPct, monthKey } from './utils'
 import { useTradeStorage } from '../../hooks/useTradeStorage'
 
+const formatPeriodLabel = (date, period) => {
+  const options = { 
+    daily: { day: 'numeric', month: 'short' },
+    weekly: { day: 'numeric', month: 'short' },
+    monthly: { month: 'long', year: 'numeric' }
+  }
+  return new Intl.DateTimeFormat('en-US', options[period]).format(date)
+}
+
 export default function Dashboard({ trades, settings }){
   const [period, setPeriod] = useState('daily')
+  const [currentDate, setCurrentDate] = useState(new Date())
+
+  // Function to navigate periods
+  const navigatePeriod = (direction) => {
+    const newDate = new Date(currentDate)
+    switch(period) {
+      case 'daily':
+        newDate.setDate(newDate.getDate() + direction)
+        break
+      case 'weekly':
+        newDate.setDate(newDate.getDate() + (direction * 7))
+        break
+      case 'monthly':
+        newDate.setMonth(newDate.getMonth() + direction)
+        break
+    }
+    setCurrentDate(newDate)
+  }
 
   const aggregates = useMemo(() => {
     const closed = trades.filter(t => t.exitDate && t.exitPrice)
     const open = trades.filter(t => !t.exitDate || !t.exitPrice)
     const m = settings.optionMultiplier
+
+    // Function to filter trades by current period
+    const isInCurrentPeriod = (date) => {
+      const tradeDate = new Date(date)
+      switch(period) {
+        case 'daily':
+          return tradeDate.toDateString() === currentDate.toDateString()
+        case 'weekly':
+          const weekStart = new Date(currentDate)
+          weekStart.setDate(currentDate.getDate() - currentDate.getDay() + (currentDate.getDay() === 0 ? -6 : 1))
+          const weekEnd = new Date(weekStart)
+          weekEnd.setDate(weekStart.getDate() + 6)
+          return tradeDate >= weekStart && tradeDate <= weekEnd
+        case 'monthly':
+          return tradeDate.getMonth() === currentDate.getMonth() && 
+                 tradeDate.getFullYear() === currentDate.getFullYear()
+        default:
+          return true
+      }
+    }
 
     // Function to group trades by date period
     const groupTradesByPeriod = (trades, periodType) => {
@@ -156,37 +203,54 @@ export default function Dashboard({ trades, settings }){
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <h3 className="text-lg font-semibold text-white">P&L History</h3>
-            <div className="flex bg-zinc-800/50 rounded-lg p-1">
-              <button 
-                onClick={() => setPeriod('daily')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  period === 'daily' 
-                    ? 'bg-zinc-700 text-white' 
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                D
-              </button>
-              <button 
-                onClick={() => setPeriod('weekly')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  period === 'weekly' 
-                    ? 'bg-zinc-700 text-white' 
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                W
-              </button>
-              <button 
-                onClick={() => setPeriod('monthly')}
-                className={`px-3 py-1 text-sm rounded-md transition-colors ${
-                  period === 'monthly' 
-                    ? 'bg-zinc-700 text-white' 
-                    : 'text-zinc-400 hover:text-white'
-                }`}
-              >
-                M
-              </button>
+            <div className="flex items-center gap-2">
+              <div className="flex bg-zinc-800/50 rounded-lg p-1">
+                <button 
+                  onClick={() => setPeriod('daily')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    period === 'daily' 
+                      ? 'bg-zinc-700 text-white' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  D
+                </button>
+                <button 
+                  onClick={() => setPeriod('weekly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    period === 'weekly' 
+                      ? 'bg-zinc-700 text-white' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  W
+                </button>
+                <button 
+                  onClick={() => setPeriod('monthly')}
+                  className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                    period === 'monthly' 
+                      ? 'bg-zinc-700 text-white' 
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  M
+                </button>
+              </div>
+              <div className="flex items-center gap-2 bg-zinc-800/50 rounded-lg p-1">
+                <button 
+                  onClick={() => navigatePeriod(-1)}
+                  className="px-2 py-1 text-sm text-zinc-400 hover:text-white"
+                >
+                  ←
+                </button>
+                <span className="text-sm text-white px-2">{formatPeriodLabel()}</span>
+                <button 
+                  onClick={() => navigatePeriod(1)}
+                  className="px-2 py-1 text-sm text-zinc-400 hover:text-white"
+                >
+                  →
+                </button>
+              </div>
             </div>
           </div>
           <span className="text-xs text-zinc-400">Sum of realized P&L</span>
