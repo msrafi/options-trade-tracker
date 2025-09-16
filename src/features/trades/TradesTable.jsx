@@ -1,11 +1,17 @@
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { AppButton, Badge } from '../../design-system'
 import { fmt } from './utils'
 import { useTradeStorage } from '../../hooks/useTradeStorage'
 
 export default function TradesTable({ trades, settings, onExitClick, onDelete, onEdit }){
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+
+  // Create a stable key for trades to detect changes
+  const tradesKey = useMemo(() => 
+    trades.map(t => `${t.id}-${t.symbol}-${t.entryPrice}-${t.exitPrice}-${t.exitDate}`).join('|'),
+    [trades]
+  )
 
   const handleSort = (key) => {
     let direction = 'asc'
@@ -54,7 +60,7 @@ export default function TradesTable({ trades, settings, onExitClick, onDelete, o
       }
       return 0
     })
-  }, [trades, sortConfig])
+  }, [trades, sortConfig, tradesKey])
 
   const getSortIcon = (columnKey) => {
     if (sortConfig.key !== columnKey) {

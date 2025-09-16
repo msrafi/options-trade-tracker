@@ -2,13 +2,11 @@ import React, { useState } from 'react'
 import { AppInput, AppSelect, AppButton } from '../../design-system'
 import { parseNum } from './utils'
 
-export default function EditTradeForm({ trade, onEdit, onCancel }) {
+export default function EditTradeForm({ trade, onSubmit, onCancel }) {
   const [type, setType] = useState(trade.type)
   const [symbol, setSymbol] = useState(trade.symbol)
   const [entryDate, setEntryDate] = useState(trade.entryDate)
   const [entryPrice, setEntryPrice] = useState(trade.entryPrice)
-  const [exitPrice, setExitPrice] = useState(trade.exitPrice || '')
-  const [exitDate, setExitDate] = useState(trade.exitDate || '')
   const [strategy, setStrategy] = useState(trade.strategy)
   const [side, setSide] = useState(trade?.option?.side || 'CALL')
   const [strike, setStrike] = useState(trade?.option?.strike || '')
@@ -21,15 +19,15 @@ export default function EditTradeForm({ trade, onEdit, onCancel }) {
       symbol: symbol.toUpperCase(),
       entryDate,
       entryPrice: parseNum(entryPrice),
-      exitPrice: exitPrice ? parseNum(exitPrice) : null,
-      exitDate: exitDate || null,
+      exitPrice: trade.exitPrice,
+      exitDate: trade.exitDate,
       type,
       strategy
     }
     if (type === 'option') {
       updatedTrade.option = { side, strike: parseNum(strike), expiration: exp }
     }
-    onEdit(updatedTrade)
+    onSubmit(updatedTrade)
   }
 
   return (
@@ -42,13 +40,11 @@ export default function EditTradeForm({ trade, onEdit, onCancel }) {
       <AppInput id="symbol" label="Symbol" value={symbol} onChange={(e)=>setSymbol(e.target.value)} className="md:col-span-2" />
       <AppInput id="entryDate" label="Entry Date" type="date" value={entryDate} onChange={(e)=>setEntryDate(e.target.value)} className="md:col-span-2" />
       <AppInput id="entryPrice" label="Entry Price" type="number" step="0.01" prefix="$" value={entryPrice} onChange={(e)=>setEntryPrice(e.target.value)} className="md:col-span-2" />
-      <AppInput id="exitPrice" label="Exit Price (Optional)" type="number" step="0.01" prefix="$" value={exitPrice} onChange={(e)=>setExitPrice(e.target.value)} className="md:col-span-2" />
-      <AppInput id="exitDate" label="Exit Date (Optional)" type="date" value={exitDate} onChange={(e)=>setExitDate(e.target.value)} className="md:col-span-2" />
       <AppSelect id="strategy" label="Strategy" value={strategy} onChange={(e)=>setStrategy(e.target.value)}
         options={['Single','Vertical','Covered Call','Iron Condor','Strangle','Straddle','Wheel','Other'].map(s=>({value:s,label:s}))} className="md:col-span-2" />
       {type === 'option' && (<>
         <AppSelect id="side" label="Option Type" value={side} onChange={(e)=>setSide(e.target.value)}
-           options={[{value:'CALL',label:'CALL'},{value:'PUT',label:'PUT'}]} className="md:col-span-2" />
+          options={[{value:'CALL',label:'CALL'},{value:'PUT',label:'PUT'}]} className="md:col-span-2" />
         <AppInput id="strike" label="Strike" type="number" step="0.01" value={strike} onChange={(e)=>setStrike(e.target.value)} className="md:col-span-2" />
         <AppInput id="exp" label="Expiration" type="date" value={exp} onChange={(e)=>setExp(e.target.value)} className="md:col-span-2" />
       </>)}
