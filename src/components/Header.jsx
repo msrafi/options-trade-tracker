@@ -1,4 +1,25 @@
 import { useState } from 'react'
+import { 
+  AppBar, 
+  Toolbar, 
+  Typography, 
+  IconButton, 
+  Box, 
+  useMediaQuery, 
+  useTheme,
+  Chip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
+} from '@mui/material'
+import { 
+  Menu as MenuIcon, 
+  Person, 
+  Settings, 
+  ImportExport,
+  AccountCircle 
+} from '@mui/icons-material'
 import { AppButton } from '../design-system'
 import Drawer from './Drawer'
 import ToolsDrawer from './ToolsDrawer'
@@ -18,59 +39,137 @@ export default function Header({
 }) {
   const [isToolsDrawerOpen, setIsToolsDrawerOpen] = useState(false)
   const [isUserDrawerOpen, setIsUserDrawerOpen] = useState(false)
+  const [anchorEl, setAnchorEl] = useState(null)
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget)
+  }
+
+  const handleMenuClose = () => {
+    setAnchorEl(null)
+  }
 
   return (
     <>
-      <div className="flex flex-col gap-4">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {/* Main Header */}
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+        <Box sx={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          gap: 2 
+        }}>
+          <Box>
+            <Typography 
+              variant="h3" 
+              sx={{ 
+                fontWeight: 'bold',
+                background: 'linear-gradient(45deg, #1976d2, #9c27b0)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                fontSize: { xs: '1.5rem', md: '2rem', lg: '2.5rem' }
+              }}
+            >
               📈 Trade Tracker
-            </h1>
-            <p className="text-sm text-zinc-500 mt-1">Track your trades with a beautiful, interactive dashboard.</p>
-          </div>
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: 'text.secondary', 
+                mt: 0.5,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              Track your trades with a beautiful, interactive dashboard.
+            </Typography>
+          </Box>
           
-          <div className="flex items-center gap-6">
-            {/* Navigation Links */}
-            <div className="flex items-center gap-6 text-sm">
-              {/* <button
-                onClick={onShowUserManagement}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 font-medium"
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Mobile Menu */}
+            {isMobile ? (
+              <IconButton 
+                onClick={handleMenuOpen}
+                sx={{ color: 'primary.main' }}
               >
-                Manage User
-              </button>
-              <span className="text-zinc-300 dark:text-zinc-600">|</span> */}
-              <button
-                onClick={() => setIsUserDrawerOpen(true)}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 font-medium"
-              >
-                Switch User
-              </button>
-              <span className="text-zinc-300 dark:text-zinc-600">|</span>
-              <button
-                onClick={() => setIsToolsDrawerOpen(true)}
-                className="text-zinc-600 dark:text-zinc-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors duration-200 font-medium"
-              >
-                Tools
-              </button>
-              <span className="text-zinc-300 dark:text-zinc-600">|</span> 
-            </div>
+                <MenuIcon />
+              </IconButton>
+            ) : (
+              /* Desktop Navigation */
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <AppButton
+                  variant="text"
+                  onClick={() => setIsUserDrawerOpen(true)}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                >
+                  Switch User
+                </AppButton>
+                <AppButton
+                  variant="text"
+                  onClick={() => setIsToolsDrawerOpen(true)}
+                  sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}
+                >
+                  Tools
+                </AppButton>
+              </Box>
+            )}
             
             {/* Current User Info */}
             {currentUser && (
-              <div className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                <span className="flex items-center gap-1">
-                  <span>{currentUser.avatar}</span>
-                  <span className="font-medium">{currentUser.name}</span>
-                </span>
-                <span>•</span>
-                <span>{currentUser.role}</span>
-              </div>
+              <Chip
+                icon={<AccountCircle />}
+                label={
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <span>{currentUser.avatar}</span>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {currentUser.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {currentUser.role}
+                    </Typography>
+                  </Box>
+                }
+                variant="outlined"
+                sx={{ 
+                  display: { xs: 'none', sm: 'flex' },
+                  '& .MuiChip-label': { px: 1 }
+                }}
+              />
             )}
-          </div>
-        </div>
-      </div>
+          </Box>
+        </Box>
+
+        {/* Mobile Menu */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+          anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+        >
+          <MenuItem onClick={() => { setIsUserDrawerOpen(true); handleMenuClose(); }}>
+            <ListItemIcon>
+              <Person fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Switch User</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => { setIsToolsDrawerOpen(true); handleMenuClose(); }}>
+            <ListItemIcon>
+              <Settings fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Tools & Settings</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={() => { onImport(); handleMenuClose(); }}>
+            <ListItemIcon>
+              <ImportExport fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Import/Export</ListItemText>
+          </MenuItem>
+        </Menu>
+      </Box>
 
       {/* Tools & Settings Drawer */}
       <Drawer

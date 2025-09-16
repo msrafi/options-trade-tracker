@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react'
+import { Grid, Box, useMediaQuery, useTheme } from '@mui/material'
 import { AppCard, Stat } from '../../design-system'
 import { PieChart, Pie, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, Cell, ComposedChart, Line, ReferenceLine } from 'recharts'
 import { fmt, fmtPct, monthKey } from './utils'
@@ -17,6 +18,10 @@ const formatPeriodLabel = (date, period) => {
 }
 
 export default function Dashboard({ trades, settings, onSearchChange, onFilterChange, currentUser, onDateFilterChange }){
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const isTablet = useMediaQuery(theme.breakpoints.down('lg'))
+  
   const [period, setPeriod] = useState('all')
   const [currentDate, setCurrentDate] = useState(new Date())
   const [searchTerm, setSearchTerm] = useState('')
@@ -400,43 +405,54 @@ export default function Dashboard({ trades, settings, onSearchChange, onFilterCh
           </div>
         </div>
       )}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-      <div className="xl:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat 
-          label="Total P&L" 
-          value={fmt.format(aggregates.totalPnL)} 
-          sub={`${aggregates.closed.length} closed / ${aggregates.open.length} open`}
-          icon="💰"
-          trend={aggregates.totalPnL >= 0 ? 1 : -1}
-          className={aggregates.totalPnL >= 0 
-            ? "!from-accent-50 !via-accent-100 !to-accent-200 dark:!from-accent-900/30 dark:!via-accent-800/20 dark:!to-accent-700/10 border-accent-200 dark:border-accent-800" 
-            : "!from-red-50 !via-red-100 !to-red-200 dark:!from-red-900/30 dark:!via-red-800/20 dark:!to-red-700/10 border-red-200 dark:border-red-800"
-          }
-        />
-        <Stat 
-          label="Win Rate" 
-          value={fmtPct(aggregates.winRate)} 
-          sub={aggregates.winningTrades.length > 0 ? `Avg Win: ${fmt.format(aggregates.avgWinAmount)}` : 'No winning trades yet'}
-          icon="🎯"
-          trend={aggregates.winRate >= 0.5 ? 1 : -1}
-          className="!from-primary-50 !via-primary-100 !to-primary-200 dark:!from-primary-900/30 dark:!via-primary-800/20 dark:!to-primary-700/10 border-primary-200 dark:border-primary-800"
-        />
-        <Stat 
-          label="Avg Loss" 
-          value={fmt.format(Math.abs(aggregates.avgLossAmount))} 
-          sub={`ROI: ${fmtPct(aggregates.roi)}`}
-          icon="📉"
-          trend={aggregates.avgLossAmount >= 0 ? -1 : 1}
-          className="!from-orange-50 !via-orange-100 !to-orange-200 dark:!from-orange-900/30 dark:!via-orange-800/20 dark:!to-orange-700/10 border-orange-200 dark:border-orange-800"
-        />
-        <Stat 
-          label="Total Invested" 
-          value={fmt.format(aggregates.invested)} 
-          sub={`${aggregates.open.length} open positions`}
-          icon="💼"
-          className="!from-secondary-50 !via-secondary-100 !to-secondary-200 dark:!from-secondary-900/30 dark:!via-secondary-800/20 dark:!to-secondary-700/10 border-secondary-200 dark:border-secondary-800"
-        />
-      </div>
+      <Grid container spacing={3}>
+        {/* Stats Grid */}
+        <Grid item xs={12}>
+          <Grid container spacing={2}>
+            <Grid item xs={6} sm={3}>
+              <Stat 
+                label="Total P&L" 
+                value={fmt.format(aggregates.totalPnL)} 
+                sub={`${aggregates.closed.length} closed / ${aggregates.open.length} open`}
+                icon="💰"
+                trend={aggregates.totalPnL >= 0 ? 1 : -1}
+                className={aggregates.totalPnL >= 0 
+                  ? "!from-accent-50 !via-accent-100 !to-accent-200 dark:!from-accent-900/30 dark:!via-accent-800/20 dark:!to-accent-700/10 border-accent-200 dark:border-accent-800" 
+                  : "!from-red-50 !via-red-100 !to-red-200 dark:!from-red-900/30 dark:!via-red-800/20 dark:!to-red-700/10 border-red-200 dark:border-red-800"
+                }
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Stat 
+                label="Win Rate" 
+                value={fmtPct(aggregates.winRate)} 
+                sub={aggregates.winningTrades.length > 0 ? `Avg Win: ${fmt.format(aggregates.avgWinAmount)}` : 'No winning trades yet'}
+                icon="🎯"
+                trend={aggregates.winRate >= 0.5 ? 1 : -1}
+                className="!from-primary-50 !via-primary-100 !to-primary-200 dark:!from-primary-900/30 dark:!via-primary-800/20 dark:!to-primary-700/10 border-primary-200 dark:border-primary-800"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Stat 
+                label="Avg Loss" 
+                value={fmt.format(Math.abs(aggregates.avgLossAmount))} 
+                sub={`ROI: ${fmtPct(aggregates.roi)}`}
+                icon="📉"
+                trend={aggregates.avgLossAmount >= 0 ? -1 : 1}
+                className="!from-orange-50 !via-orange-100 !to-orange-200 dark:!from-orange-900/30 dark:!via-orange-800/20 dark:!to-orange-700/10 border-orange-200 dark:border-orange-800"
+              />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <Stat 
+                label="Total Invested" 
+                value={fmt.format(aggregates.invested)} 
+                sub={`${aggregates.open.length} open positions`}
+                icon="💼"
+                className="!from-secondary-50 !via-secondary-100 !to-secondary-200 dark:!from-secondary-900/30 dark:!via-secondary-800/20 dark:!to-secondary-700/10 border-secondary-200 dark:border-secondary-800"
+              />
+            </Grid>
+          </Grid>
+        </Grid>
 
       {/* Filter Search Section - Enhanced Design */}
       <CollapsiblePanel 
@@ -596,7 +612,9 @@ export default function Dashboard({ trades, settings, onSearchChange, onFilterCh
         </div>
       </CollapsiblePanel>
 
-      <AppCard className="xl:col-span-7 h-[400px] !bg-zinc-900/95 !border-zinc-800">
+        {/* Charts Section */}
+        <Grid item xs={12} lg={7}>
+          <AppCard className="h-[400px] !bg-zinc-900/95 !border-zinc-800">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
@@ -813,9 +831,11 @@ export default function Dashboard({ trades, settings, onSearchChange, onFilterCh
             </div>
           </div>
         )}
-      </AppCard>
+          </AppCard>
+        </Grid>
 
-      <AppCard className="xl:col-span-5 h-[400px]">
+        <Grid item xs={12} lg={5}>
+          <AppCard className="h-[400px]">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-semibold">Profit by Strategy (abs)</h3>
           <span className="text-xs text-zinc-500">Absolute P&L distribution</span>
@@ -916,8 +936,9 @@ export default function Dashboard({ trades, settings, onSearchChange, onFilterCh
             />
           </PieChart>
         </ResponsiveContainer>
-      </AppCard>
-      </div>
+          </AppCard>
+        </Grid>
+      </Grid>
       
       {/* Yearly Activity Chart - Separate Section */}
       <CollapsiblePanel 

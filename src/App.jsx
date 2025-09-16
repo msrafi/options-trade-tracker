@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ThemeProvider, CssBaseline, Box, Container, useMediaQuery, useTheme } from '@mui/material'
 import { AppButton, AppCard, AppInput, AppSelect, Divider } from './design-system'
 import { monthKey } from './features/trades/utils.js'
 import { useTradeStorage } from './hooks/useTradeStorage'
@@ -7,14 +8,23 @@ import { useUserManagement } from './hooks/useUserManagement'
 import Header from './components/Header'
 import UserManagement from './components/UserManagement'
 import CollapsiblePanel from './components/CollapsiblePanel'
+import MobileBottomNav from './components/MobileBottomNav'
+import MobileTradeForm from './components/MobileTradeForm'
+import Drawer from './components/Drawer'
+import ToolsDrawer from './components/ToolsDrawer'
 import Dashboard from './features/trades/Dashboard'
 import TradeForm from './features/trades/TradeForm'
 import TradesTable from './features/trades/TradesTable'
 import ExitTradeForm from './features/trades/ExitTradeForm'
 import EditTradeForm from './features/trades/EditTradeForm'
+import { theme, darkTheme } from './theme'
 
 
-export default function App() {
+// Main App Content Component
+function AppContent() {
+  const muiTheme = useTheme()
+  const isMobile = useMediaQuery(muiTheme.breakpoints.down('md'))
+  
   // User management
   const {
     currentUser,
@@ -45,6 +55,9 @@ export default function App() {
   const [exiting, setExiting] = useState(null)
   const [editing, setEditing] = useState(null)
   const [showUserManagement, setShowUserManagement] = useState(false)
+  const [mobileTab, setMobileTab] = useState('dashboard')
+  const [showMobileTradeForm, setShowMobileTradeForm] = useState(false)
+  const [isToolsDrawerOpen, setIsToolsDrawerOpen] = useState(false)
 
   // Get trades for current user
   const trades = currentUser ? getUserTrades() : []
@@ -209,19 +222,50 @@ export default function App() {
   // Show loading state while users are being initialized
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-indigo-950 text-zinc-900 dark:text-zinc-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Loading Trading App</h2>
-          <p className="text-zinc-500">Initializing user data...</p>
-        </div>
-      </div>
+      <Box 
+        sx={{ 
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #e3f2fd 0%, #ffffff 50%, #f3e5f5 100%)',
+        }}
+      >
+        <Box sx={{ textAlign: 'center' }}>
+          <Box 
+            sx={{
+              width: 64,
+              height: 64,
+              border: '4px solid #e3f2fd',
+              borderTop: '4px solid #1976d2',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              mx: 'auto',
+              mb: 2,
+              '@keyframes spin': {
+                '0%': { transform: 'rotate(0deg)' },
+                '100%': { transform: 'rotate(360deg)' },
+              },
+            }}
+          />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#424242', marginBottom: '0.5rem' }}>
+            Loading Trading App
+          </h2>
+          <p style={{ color: '#757575' }}>Initializing user data...</p>
+        </Box>
+      </Box>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50 dark:from-neutral-900 dark:via-neutral-800 dark:to-primary-900 text-neutral-800 dark:text-neutral-100">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <Box 
+      sx={{ 
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #fafafa 0%, #ffffff 50%, #f3e5f5 100%)',
+        color: 'text.primary',
+      }}
+    >
+      <Container maxWidth="xl" sx={{ py: isMobile ? 2 : 4, px: isMobile ? 1 : 2 }}>
         <Header 
           settings={settings} 
           updateSettings={updateSettings} 
@@ -244,7 +288,7 @@ export default function App() {
           title="New Trade"
           subtitle="Add a new trade to your portfolio"
           icon="➕"
-          defaultExpanded={true}
+          defaultExpanded={!isMobile}
           className="mb-6"
         >
           <TradeForm 
@@ -255,28 +299,87 @@ export default function App() {
           />
         </CollapsiblePanel>
 
-        <div className="space-y-6">
-          <Dashboard 
-            trades={filtered} 
-            settings={settings} 
-            onSearchChange={setSearch}
-            onFilterChange={setDashboardFilter}
-            currentUser={currentUser}
-            onDateFilterChange={setDateFilter}
-          />
-          <AppCard>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Manage Trades</h3>
-            </div>
-            <TradesTable 
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, pb: isMobile ? 8 : 0 }}>
+          {mobileTab === 'dashboard' && (
+            <Dashboard 
               trades={filtered} 
-              onExitClick={setExiting}
-              onEdit={setEditing}
-              onDelete={deleteUserTrade} 
+              settings={settings} 
+              onSearchChange={setSearch}
+              onFilterChange={setDashboardFilter}
+              currentUser={currentUser}
+              onDateFilterChange={setDateFilter}
             />
-          </AppCard>
-        </div>
-      </div>
+          )}
+          
+          {mobileTab === 'trades' && (
+            <AppCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Manage Trades</h3>
+              </div>
+              <TradesTable 
+                trades={filtered} 
+                onExitClick={setExiting}
+                onEdit={setEditing}
+                onDelete={deleteUserTrade} 
+              />
+            </AppCard>
+          )}
+          
+          {!isMobile && (
+            <AppCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Manage Trades</h3>
+              </div>
+              <TradesTable 
+                trades={filtered} 
+                onExitClick={setExiting}
+                onEdit={setEditing}
+                onDelete={deleteUserTrade} 
+              />
+            </AppCard>
+          )}
+        </Box>
+      </Container>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav
+        currentTab={mobileTab}
+        onTabChange={setMobileTab}
+        onShowUserManagement={() => setShowUserManagement(true)}
+        onShowTools={() => setIsToolsDrawerOpen(true)}
+        onShowTradeForm={() => setShowMobileTradeForm(true)}
+      />
+
+      {/* Mobile Trade Form */}
+      <MobileTradeForm
+        open={showMobileTradeForm}
+        onClose={() => setShowMobileTradeForm(false)}
+        onSubmit={(trade) => {
+          addUserTrade(trade)
+          setShowMobileTradeForm(false)
+        }}
+      />
+
+      {/* Tools & Settings Drawer */}
+      <Drawer
+        isOpen={isToolsDrawerOpen}
+        onClose={() => setIsToolsDrawerOpen(false)}
+        title="Tools & Settings"
+        size="lg"
+      >
+        <ToolsDrawer
+          settings={settings}
+          updateSettings={updateSettings}
+          onImport={handleImport}
+          onExport={handleExport}
+          onResetData={() => {
+            if (confirm('Are you sure you want to reset all data? This will replace your current trades with sample data.')) {
+              resetToDefaults()
+            }
+          }}
+          currentUser={currentUser}
+        />
+      </Drawer>
 
       <AnimatePresence>
         {showUserManagement && (
@@ -376,6 +479,18 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </Box>
+  )
+}
+
+// Main App Component with Theme Provider
+export default function App() {
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  
+  return (
+    <ThemeProvider theme={isDarkMode ? darkTheme : theme}>
+      <CssBaseline />
+      <AppContent />
+    </ThemeProvider>
   )
 }
