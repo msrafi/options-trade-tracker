@@ -12,9 +12,22 @@ const getInitialData = () => {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (stored) {
       const data = JSON.parse(stored)
-      return {
-        trades: data.trades || defaultTrades,
-        settings: { ...defaultSettings, ...data.settings }
+      // Check if existing trades have symbol and type fields
+      const hasValidData = data.trades && data.trades.length > 0 && 
+                          data.trades[0].symbol && data.trades[0].type
+      
+      if (hasValidData) {
+        return {
+          trades: data.trades,
+          settings: { ...defaultSettings, ...data.settings }
+        }
+      } else {
+        // If old data without symbol/type, use new default data
+        console.log('Updating to new data format with symbol and type fields')
+        return {
+          trades: defaultTrades,
+          settings: { ...defaultSettings, ...data.settings }
+        }
       }
     }
   } catch (error) {
@@ -46,11 +59,23 @@ export function useTradeStorage() {
   }, [data])
 
   const saveTrade = (trade) => {
+    console.log('Saving trade:', trade)
     setData(current => {
-      const newTrades = trade.id 
-        ? current.trades.map(t => t.id === trade.id ? trade : t)
-        : [{ ...trade, id: Date.now() }, ...current.trades]
+      // Check if trade with this ID already exists
+      const existingTradeIndex = current.trades.findIndex(t => t.id === trade.id)
       
+      let newTrades
+      if (existingTradeIndex >= 0) {
+        // Update existing trade
+        newTrades = current.trades.map(t => t.id === trade.id ? trade : t)
+        console.log('Updating existing trade')
+      } else {
+        // Add new trade
+        newTrades = [trade, ...current.trades]
+        console.log('Adding new trade')
+      }
+      
+      console.log('Updated trades:', newTrades)
       return {
         ...current,
         trades: newTrades
@@ -72,11 +97,25 @@ export function useTradeStorage() {
     }))
   }
 
+  const resetToDefaults = () => {
+    setData({
+      trades: defaultTrades,
+      settings: defaultSettings
+    })
+  }
+
+  const clearStorage = () => {
+    localStorage.removeItem(STORAGE_KEY)
+    resetToDefaults()
+  }
+
   return {
     trades: data.trades,
     settings: data.settings,
     saveTrade,
     deleteTrade,
-    updateSettings
+    updateSettings,
+    resetToDefaults,
+    clearStorage
   }
 }

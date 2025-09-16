@@ -3,65 +3,51 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { AppButton, AppCard, AppInput, AppSelect, Divider } from './design-system'
 import { monthKey } from './features/trades/utils.js'
 import { useTradeStorage } from './hooks/useTradeStorage'
+import { useUserManagement } from './hooks/useUserManagement'
+import Header from './components/Header'
+import UserManagement from './components/UserManagement'
+import CollapsiblePanel from './components/CollapsiblePanel'
 import Dashboard from './features/trades/Dashboard'
 import TradeForm from './features/trades/TradeForm'
 import TradesTable from './features/trades/TradesTable'
 import ExitTradeForm from './features/trades/ExitTradeForm'
 import EditTradeForm from './features/trades/EditTradeForm'
 
-function Header({ settings, updateSettings, onImport, onExport }) {
-  const [multiplier, setMultiplier] = useState(settings?.optionMultiplier ?? 100)
-
-  const handleMultiplierChange = (e) => {
-    const value = Number(e.target.value || 100)
-    setMultiplier(value)
-    updateSettings({ optionMultiplier: value })
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">📈 Options & Stock Trade Tracker</h1>
-          <p className="text-sm text-zinc-500">Track your options and stock trades with a beautiful dashboard.</p>
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2 items-center">
-        <AppButton variant="secondary" onClick={onImport}>Import</AppButton>
-        <AppButton variant="secondary" onClick={onExport}>Export</AppButton>
-        <div className="w-px h-6 bg-zinc-300 dark:bg-zinc-700 mx-1" />
-        <details className="px-3 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800">
-          <summary className="cursor-pointer text-sm font-medium">Settings</summary>
-          <div className="mt-3 grid grid-cols-1 md:grid-cols-12 gap-3 text-sm">
-            <AppInput 
-              id="mult" 
-              label="Options Contract Multiplier" 
-              type="number" 
-              value={multiplier}
-              onChange={handleMultiplierChange} 
-              className="md:col-span-5" 
-            />
-            <p className="md:col-span-12 text-xs text-zinc-500">Common values: 100 (US), 10 (some markets). Set to 1 for Profit = Out − In with no scaling.</p>
-          </div>
-        </details>
-      </div>
-    </div>
-  )
-}
 
 export default function App() {
+  // User management
+  const {
+    currentUser,
+    users,
+    isLoading: userLoading,
+    switchUser,
+    getUserTrades,
+    saveUserTrades,
+    addUserTrade,
+    updateUserTrade,
+    deleteUserTrade,
+    addUser,
+    editUser,
+    deleteUser
+  } = useUserManagement()
+
+  // Legacy trade storage (for settings only)
   const { 
-    trades = [], 
     settings = { optionMultiplier: 100 }, 
-    saveTrade = () => {}, 
-    deleteTrade = () => {}, 
-    updateSettings = () => {} 
+    updateSettings = () => {},
+    resetToDefaults = () => {}
   } = useTradeStorage() || {}
   
   const [filterMonth, setFilterMonth] = useState("")
   const [search, setSearch] = useState("")
+  const [dashboardFilter, setDashboardFilter] = useState("all")
+  const [dateFilter, setDateFilter] = useState(null)
   const [exiting, setExiting] = useState(null)
   const [editing, setEditing] = useState(null)
+  const [showUserManagement, setShowUserManagement] = useState(false)
+
+  // Get trades for current user
+  const trades = currentUser ? getUserTrades() : []
 
   const monthOptions = useMemo(() => {
     const months = new Set(trades.flatMap(t => [
@@ -71,19 +57,114 @@ export default function App() {
     return Array.from(months).sort().reverse()
   }, [trades])
 
-  const filtered = useMemo(() => trades.filter(t => {
-    const okMonth = filterMonth ? monthKey(t.entryDate) === filterMonth || 
-      (t.exitDate && monthKey(t.exitDate) === filterMonth) : true
+  const filtered = useMemo(() => {
+    let filteredTrades = trades.filter(t => {
+      const okMonth = filterMonth ? monthKey(t.entryDate) === filterMonth || 
+        (t.exitDate && monthKey(t.exitDate) === filterMonth) : true
 
-    const searchTerms = search.toLowerCase().split(' ').filter(Boolean)
-    const searchText = `${t.symbol} ${t.strategy} ${t.type} ${t.notes || ''} ${
-      t.type === 'option' ? `${t.option?.side} ${t.option?.strike} ${t.option?.expiration}` : ''
-    }`.toLowerCase()
-    
-    return okMonth && searchTerms.every(term => searchText.includes(term))
-  }), [trades, filterMonth, search])
+      const searchTerms = search.toLowerCase().split(' ').filter(Boolean)
+      const searchText = `${t.symbol} ${t.strategy} ${t.type} ${t.notes || ''} ${
+        t.type === 'option' ? `${t.option?.side} ${t.option?.strike} ${t.option?.expiration}` : ''
+      }`.toLowerCase()
+      
+      return okMonth && searchTerms.every(term => searchText.includes(term))
+    })
+
+    // Apply dashboard filter
+    switch (dashboardFilter) {
+      case 'winning':
+        filteredTrades = filteredTrades.filter(t => t.exitDate && t.exitPrice && (t.exitPrice - t.entryPrice) > 0)
+        break
+      case 'losing':
+        filteredTrades = filteredTrades.filter(t => t.exitDate && t.exitPrice && (t.exitPrice - t.entryPrice) <= 0)
+        break
+      case 'open':
+        filteredTrades = filteredTrades.filter(t => !t.exitDate || !t.exitPrice)
+        break
+      default:
+        // 'all' - no additional filtering
+        break
+    }
+
+    // Apply date filter
+    if (dateFilter) {
+      const beforeFilter = filteredTrades.length
+      
+      // Debug: Show sample trade dates before filtering
+      console.log('Sample trade dates before filtering:', 
+        filteredTrades.slice(0, 10).map(t => ({
+          symbol: t.symbol,
+          exitDate: t.exitDate,
+          parsedDate: t.exitDate ? new Date(t.exitDate).toDateString() : 'No exit date',
+          rawExitDate: t.exitDate
+        }))
+      )
+      
+      console.log('Filter date being used:', {
+        dateFilter: dateFilter,
+        dateFilterString: dateFilter.toDateString(),
+        dateFilterISO: dateFilter.toISOString()
+      })
+      
+      filteredTrades = filteredTrades.filter(t => {
+        if (!t.exitDate) return false
+        const tradeDate = new Date(t.exitDate)
+        const filterDate = new Date(dateFilter)
+        
+        // Compare dates by setting time to 00:00:00 to avoid timezone issues
+        const tradeDateOnly = new Date(tradeDate.getFullYear(), tradeDate.getMonth(), tradeDate.getDate())
+        const filterDateOnly = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate())
+        
+        const matches = tradeDateOnly.getTime() === filterDateOnly.getTime()
+        
+        // Debug first few trades to see what's happening
+        if (filteredTrades.indexOf(t) < 3) {
+          console.log('Trade filtering debug:', {
+            symbol: t.symbol,
+            exitDate: t.exitDate,
+            tradeDate: tradeDate.toDateString(),
+            filterDate: filterDate.toDateString(),
+            tradeDateOnly: tradeDateOnly.toDateString(),
+            filterDateOnly: filterDateOnly.toDateString(),
+            tradeTime: tradeDateOnly.getTime(),
+            filterTime: filterDateOnly.getTime(),
+            matches: matches
+          })
+        }
+        
+        return matches
+      })
+      console.log('App.jsx date filter debug:', {
+        dateFilter: dateFilter.toDateString(),
+        beforeFilter,
+        afterFilter: filteredTrades.length,
+        filteredTrades: filteredTrades.map(t => ({ symbol: t.symbol, exitDate: t.exitDate })),
+        sampleTradeDates: filteredTrades.slice(0, 3).map(t => ({
+          symbol: t.symbol,
+          exitDate: t.exitDate,
+          parsedDate: new Date(t.exitDate).toDateString()
+        }))
+      })
+    }
+
+    // Debug logging
+    console.log('Filtered trades:', {
+      totalTrades: trades.length,
+      filteredCount: filteredTrades.length,
+      searchTerm: search,
+      dashboardFilter: dashboardFilter,
+      filterMonth: filterMonth
+    })
+
+    return filteredTrades
+  }, [trades, filterMonth, search, dashboardFilter, dateFilter])
 
   const handleImport = () => {
+    if (!currentUser) {
+      alert('Please select a user first.')
+      return
+    }
+    
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.json'
@@ -95,7 +176,10 @@ export default function App() {
         try {
           const trades = JSON.parse(e.target.result)
           const asArray = Array.isArray(trades) ? trades : [trades]
-          asArray.forEach(saveTrade)
+          const currentTrades = getUserTrades()
+          const newTrades = [...currentTrades, ...asArray]
+          saveUserTrades(newTrades)
+          alert(`Successfully imported ${asArray.length} trades for ${currentUser.name}`)
         } catch (error) {
           console.error('Error importing trades:', error)
           alert('Failed to import trades. Please check the file format.')
@@ -107,80 +191,106 @@ export default function App() {
   }
 
   const handleExport = () => {
+    if (!currentUser) {
+      alert('Please select a user first.')
+      return
+    }
+    
     const data = JSON.stringify(trades, null, 2)
     const blob = new Blob([data], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `trades-export-${new Date().toISOString().split('T')[0]}.json`
+    a.download = `trades-${currentUser.name.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
 
+  // Show loading state while users are being initialized
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-indigo-950 text-zinc-900 dark:text-zinc-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-zinc-700 dark:text-zinc-300 mb-2">Loading Trading App</h2>
+          <p className="text-zinc-500">Initializing user data...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900 text-zinc-900 dark:text-zinc-50">
+    <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-white to-primary-50 dark:from-neutral-900 dark:via-neutral-800 dark:to-primary-900 text-neutral-800 dark:text-neutral-100">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <Header 
           settings={settings} 
           updateSettings={updateSettings} 
           onImport={handleImport} 
-          onExport={handleExport} 
+          onExport={handleExport}
+          onResetData={() => {
+            if (confirm('Are you sure you want to reset all data? This will replace your current trades with sample data.')) {
+              resetToDefaults()
+            }
+          }}
+          currentUser={currentUser}
+          users={users}
+          onUserSwitch={switchUser}
+          isLoading={userLoading}
+          onShowUserManagement={() => setShowUserManagement(true)}
         />
         <Divider className="my-6" />
         
-        <AppCard className="mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">New Trade</h3>
-          </div>
+        <CollapsiblePanel 
+          title="New Trade"
+          subtitle="Add a new trade to your portfolio"
+          icon="➕"
+          defaultExpanded={true}
+          className="mb-6"
+        >
           <TradeForm 
             onSubmit={trade => {
-              saveTrade(trade)
+              addUserTrade(trade)
             }}
             onCancel={null}
           />
-        </AppCard>
+        </CollapsiblePanel>
 
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <AppCard className="xl:col-span-3">
-            <h3 className="text-lg font-semibold mb-4">Filters</h3>
-            <AppSelect 
-              id="month" 
-              label="Month" 
-              value={filterMonth} 
-              onChange={(e) => setFilterMonth(e.target.value)}
-              options={[
-                { value: '', label: 'All' }, 
-                ...monthOptions.map(m => ({ value: m, label: m }))
-              ]} 
-            />
-            <AppInput 
-              id="search" 
-              label="Search" 
-              placeholder="AAPL, Vertical, option..." 
-              value={search} 
-              onChange={(e) => setSearch(e.target.value)} 
-              className="mt-3" 
+        <div className="space-y-6">
+          <Dashboard 
+            trades={filtered} 
+            settings={settings} 
+            onSearchChange={setSearch}
+            onFilterChange={setDashboardFilter}
+            currentUser={currentUser}
+            onDateFilterChange={setDateFilter}
+          />
+          <AppCard>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Manage Trades</h3>
+            </div>
+            <TradesTable 
+              trades={filtered} 
+              onExitClick={setExiting}
+              onEdit={setEditing}
+              onDelete={deleteUserTrade} 
             />
           </AppCard>
-
-          <div className="xl:col-span-9 space-y-6">
-            <Dashboard trades={filtered} settings={settings} />
-            <AppCard>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Manage Trades</h3>
-              </div>
-              <TradesTable 
-                trades={filtered} 
-                onExitClick={setExiting}
-                onEdit={setEditing}
-                onDelete={deleteTrade} 
-              />
-            </AppCard>
-          </div>
         </div>
       </div>
 
       <AnimatePresence>
+        {showUserManagement && (
+          <UserManagement
+            users={users}
+            currentUser={currentUser}
+            onUserSwitch={switchUser}
+            onAddUser={addUser}
+            onEditUser={editUser}
+            onDeleteUser={deleteUser}
+            onClose={() => setShowUserManagement(false)}
+          />
+        )}
+
         {editing && (
           <motion.div 
             initial={{ opacity: 0 }}
@@ -207,7 +317,7 @@ export default function App() {
                   <EditTradeForm 
                     trade={editing} 
                     onSubmit={trade => {
-                      saveTrade(trade)
+                      updateUserTrade(trade.id, trade)
                       setEditing(null)
                     }}
                     onCancel={() => setEditing(null)}
@@ -215,7 +325,7 @@ export default function App() {
                 ) : (
                   <TradeForm 
                     onSubmit={trade => {
-                      saveTrade(trade)
+                      addUserTrade(trade)
                       setEditing(null)
                     }}
                     onCancel={() => setEditing(null)}
@@ -248,8 +358,15 @@ export default function App() {
                 </div>
                 <ExitTradeForm
                   trade={exiting}
-                  onSubmit={exit => {
-                    saveTrade({ ...exiting, ...exit })
+                  onExit={exit => {
+                    const pnl = exit.price - exiting.entryPrice
+                    updateUserTrade(exiting.id, { 
+                      exitDate: exit.date, 
+                      exitPrice: exit.price, 
+                      fees: exit.fees,
+                      status: 'closed',
+                      pnl: Number(pnl.toFixed(2))
+                    })
                     setExiting(null)
                   }}
                   onCancel={() => setExiting(null)}

@@ -40,16 +40,34 @@ export const defaultTrades = Array.from({ length: 50 }, (_, i) => {
     ? generatePrice(buyPrice, buyPrice * 1.5) // winning trade
     : generatePrice(buyPrice * 0.5, buyPrice) // losing trade
 
-  return {
+  // Randomly choose between option and stock trades
+  const tradeType = Math.random() > 0.8 ? 'stock' : 'option'
+  const symbols = ['AAPL', 'MSFT', 'GOOGL', 'TSLA', 'AMZN', 'META', 'NVDA', 'NFLX', 'SPY', 'QQQ', 'IWM', 'AMD', 'CRM', 'ADBE']
+  const selectedSymbol = symbols[Math.floor(Math.random() * symbols.length)]
+
+  const trade = {
     id: i + 1,
+    symbol: selectedSymbol,
+    type: tradeType,
     strategy,
     entryDate,
     exitDate: exitDate.toISOString().split('T')[0],
     buyPrice,
     exitPrice,
     contracts: Math.floor(Math.random() * 3) + 1, // 1-3 contracts
-    notes: `Sample ${strategy} trade ${i + 1}`
+    notes: `Sample ${strategy} trade ${i + 1} on ${selectedSymbol}`
   }
+
+  // Add option details only for option trades
+  if (tradeType === 'option') {
+    trade.option = {
+      side: Math.random() > 0.5 ? 'CALL' : 'PUT',
+      strike: Number((buyPrice * (0.8 + Math.random() * 0.4)).toFixed(2)),
+      expiration: new Date(exitDate.getTime() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    }
+  }
+
+  return trade
 })
 
 // Sort trades by entry date

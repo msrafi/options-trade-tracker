@@ -3,12 +3,12 @@ import React, { useState } from 'react'
 import { AppInput, AppSelect, AppButton } from '../../design-system'
 import { parseNum, uid } from './utils'
 
-export default function TradeForm({ onAdd }){
+export default function TradeForm({ onAdd, onSubmit }){
   const [type, setType] = useState('option')
   const [symbol, setSymbol] = useState('')
   const [entryDate, setEntryDate] = useState(()=> new Date().toISOString().slice(0,10))
   const [exitDate, setExitDate] = useState('')
-  const [buyPrice, setBuyPrice] = useState('')
+  const [entryPrice, setEntryPrice] = useState('')
   const [exitPrice, setExitPrice] = useState('')
   const [strategy, setStrategy] = useState('Single')
   const [notes, setNotes] = useState('')
@@ -28,14 +28,15 @@ export default function TradeForm({ onAdd }){
       symbol: symbol.toUpperCase(),
       entryDate,
       exitDate,
-      buyPrice: parseNum(buyPrice),
+      entryPrice: parseNum(entryPrice),
       exitPrice: parseNum(exitPrice),
       type,
       strategy,
       notes,
     }
     if (type === 'option') trade.option = { side, strike: parseNum(strike), expiration: exp }
-    onAdd(trade); reset()
+    const callback = onSubmit || onAdd
+    callback(trade); reset()
   }
 
   return (
@@ -44,7 +45,7 @@ export default function TradeForm({ onAdd }){
         options={[{value:'option',label:'Option'},{value:'stock',label:'Stock'}]} className="md:col-span-2" />
       <AppInput id="symbol" label="Symbol" value={symbol} onChange={(e)=>setSymbol(e.target.value)} className="md:col-span-2" />
       <AppInput id="entryDate" label="Entry Date" type="date" value={entryDate} onChange={(e)=>setEntryDate(e.target.value)} className="md:col-span-2" />
-      <AppInput id="buyPrice" label="Buy Price" type="number" step="0.01" prefix="$" value={buyPrice} onChange={(e)=>setBuyPrice(e.target.value)} className="md:col-span-2" />
+      <AppInput id="entryPrice" label="Entry Price" type="number" step="0.01" prefix="$" value={entryPrice} onChange={(e)=>setEntryPrice(e.target.value)} className="md:col-span-2" />
       <AppInput id="exitPrice" label="Exit Price (Optional)" type="number" step="0.01" prefix="$" value={exitPrice} onChange={(e)=>setExitPrice(e.target.value)} className="md:col-span-2" />
       <AppInput id="exitDate" label="Exit Date (Optional)" type="date" value={exitDate} onChange={(e)=>setExitDate(e.target.value)} className="md:col-span-2" />
       <AppSelect id="strategy" label="Strategy" value={strategy} onChange={(e)=>setStrategy(e.target.value)}

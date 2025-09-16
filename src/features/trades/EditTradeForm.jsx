@@ -6,7 +6,7 @@ export default function EditTradeForm({ trade, onEdit, onCancel }) {
   const [type, setType] = useState(trade.type)
   const [symbol, setSymbol] = useState(trade.symbol)
   const [entryDate, setEntryDate] = useState(trade.entryDate)
-  const [buyPrice, setBuyPrice] = useState(trade.buyPrice)
+  const [entryPrice, setEntryPrice] = useState(trade.entryPrice)
   const [exitPrice, setExitPrice] = useState(trade.exitPrice || '')
   const [exitDate, setExitDate] = useState(trade.exitDate || '')
   const [strategy, setStrategy] = useState(trade.strategy)
@@ -20,7 +20,7 @@ export default function EditTradeForm({ trade, onEdit, onCancel }) {
       ...trade,
       symbol: symbol.toUpperCase(),
       entryDate,
-      buyPrice: parseNum(buyPrice),
+      entryPrice: parseNum(entryPrice),
       exitPrice: exitPrice ? parseNum(exitPrice) : null,
       exitDate: exitDate || null,
       type,
@@ -41,7 +41,7 @@ export default function EditTradeForm({ trade, onEdit, onCancel }) {
         options={[{value:'option',label:'Option'},{value:'stock',label:'Stock'}]} className="md:col-span-2" />
       <AppInput id="symbol" label="Symbol" value={symbol} onChange={(e)=>setSymbol(e.target.value)} className="md:col-span-2" />
       <AppInput id="entryDate" label="Entry Date" type="date" value={entryDate} onChange={(e)=>setEntryDate(e.target.value)} className="md:col-span-2" />
-      <AppInput id="buyPrice" label="Buy Price" type="number" step="0.01" prefix="$" value={buyPrice} onChange={(e)=>setBuyPrice(e.target.value)} className="md:col-span-2" />
+      <AppInput id="entryPrice" label="Entry Price" type="number" step="0.01" prefix="$" value={entryPrice} onChange={(e)=>setEntryPrice(e.target.value)} className="md:col-span-2" />
       <AppInput id="exitPrice" label="Exit Price (Optional)" type="number" step="0.01" prefix="$" value={exitPrice} onChange={(e)=>setExitPrice(e.target.value)} className="md:col-span-2" />
       <AppInput id="exitDate" label="Exit Date (Optional)" type="date" value={exitDate} onChange={(e)=>setExitDate(e.target.value)} className="md:col-span-2" />
       <AppSelect id="strategy" label="Strategy" value={strategy} onChange={(e)=>setStrategy(e.target.value)}
